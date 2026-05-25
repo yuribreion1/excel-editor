@@ -1,0 +1,62 @@
+{
+  "name": "excel-editor",
+  "version": "0.0.1",
+  "description": "VS Code extension for viewing XLSX files in a read-only table",
+  "main": "./out/extension.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node ./out/src/test/runTest.js",
+    "compile": "tsc -p ./ && node scripts/copy-static.mjs",
+    "watch": "tsc -w -p ./",
+    "pretest": "npm run compile && node scripts/create-fixtures.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuribreion1/excel-editor.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yuribreion1/excel-editor/issues"
+  },
+  "homepage": "https://github.com/yuribreion1/excel-editor#readme",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "excelEditor.xlsxViewer",
+        "displayName": "XLSX Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.xlsx"
+          }
+        ],
+        "priority": "default"
+      }
+    ]
+  },
+  "activationEvents": [
+    "onCustomEditor:excelEditor.xlsxViewer"
+  ],
+  "categories": [
+    "Other"
+  ],
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.9.1",
+    "@types/vscode": "^1.120.0",
+    "@vscode/test-electron": "^2.5.2",
+    "mocha": "^11.7.6",
+    "typescript": "^6.0.3"
+  }
+}
