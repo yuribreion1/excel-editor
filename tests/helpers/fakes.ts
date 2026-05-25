@@ -32,8 +32,14 @@ export class FakeWebview {
 export class FakeWebviewPanel {
   public readonly webview = new FakeWebview();
   public title = '';
+  private disposeListener?: () => void;
 
-  public onDidDispose(): vscode.Disposable {
+  public onDidDispose(listener?: () => void): vscode.Disposable {
+    this.disposeListener = listener;
     return new vscode.Disposable(() => undefined);
+  }
+
+  public dispose(): void {
+    this.disposeListener?.();
   }
 }

@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 
-import { XlsxReadonlyEditorProvider } from './editor/XlsxReadonlyEditorProvider';
+import { XlsxEditorProvider } from './editor/XlsxEditorProvider';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new XlsxReadonlyEditorProvider(context.extensionUri);
+  const provider = new XlsxEditorProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
-      XlsxReadonlyEditorProvider.viewType,
+      XlsxEditorProvider.viewType,
       provider,
       {
         supportsMultipleEditorsPerDocument: false,

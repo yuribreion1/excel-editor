@@ -12,5 +12,7 @@ suite('xlsxWorkbookLoader', () => {
     assert.equal(workbook.sheets.length, 1);
     assert.equal(workbook.activeSheetId, 'Summary');
     assert.deepEqual(workbook.warnings, []);
+    assert.equal(workbook.editability.editable, true);
+    assert.equal(workbook.sheets[0]?.isEditable, true);
   });
 });
