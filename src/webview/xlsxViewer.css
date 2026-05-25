@@ -1,0 +1,117 @@
+body {
+  margin: 0;
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+}
+
+.viewer-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.viewer-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.viewer-subtitle {
+  margin: 4px 0 0;
+  color: var(--vscode-descriptionForeground);
+}
+
+.viewer-badge {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.viewer-message {
+  padding: 12px;
+  border-left: 4px solid var(--vscode-textLink-foreground);
+  background: var(--vscode-textBlockQuote-background);
+}
+
+.viewer-warnings {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.sheet-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet-tab {
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  cursor: pointer;
+}
+
+.sheet-tab.is-active {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.viewer-table-wrapper {
+  overflow: auto;
+  border: 1px solid var(--vscode-panel-border);
+}
+
+.viewer-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.viewer-table th,
+.viewer-table td {
+  min-width: 96px;
+  padding: 8px 10px;
+  border: 1px solid var(--vscode-panel-border);
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.column-header,
+.row-header,
+.corner-cell {
+  position: sticky;
+  background: var(--vscode-sideBar-background);
+  z-index: 1;
+}
+
+.column-header,
+.corner-cell {
+  top: 0;
+}
+
+.row-header,
+.corner-cell {
+  left: 0;
+}
+
+.cell.is-muted {
+  opacity: 0.65;
+}
+
+.viewer-loading {
+  margin: 0;
+}

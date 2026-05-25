@@ -1,0 +1,10 @@
+.github/
+.specify/
+.vscode/
+specs/
+tests/
+src/
+scripts/
+tsconfig.json
+.vscode-test.mjs
+.gitignore
