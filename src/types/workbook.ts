@@ -1,9 +1,14 @@
 import type * as XLSX from 'xlsx';
 
+import type { CellRawValueType, WorkbookSaveAssessment } from './workbook-edit';
+
 export interface WorksheetSummary {
   id: string;
   name: string;
   visibilityState: 'visible' | 'hidden' | 'veryHidden';
+  isEditable: boolean;
+  editBlockReason?: string;
+  pendingEditCount: number;
 }
 
 export interface ParsedWorkbook {
@@ -13,15 +18,22 @@ export interface ParsedWorkbook {
   sheets: WorksheetSummary[];
   activeSheetId: string;
   warnings: string[];
+  editability: WorkbookSaveAssessment;
 }
 
 export interface TableCell {
+  address: string;
   rowIndex: number;
   columnIndex: number;
   displayValue: string;
-  rawValueType: 'text' | 'number' | 'boolean' | 'date' | 'blank' | 'unknown';
+  editValue: string;
+  rawValueType: CellRawValueType;
+  isEditable: boolean;
+  editBlockReason?: string;
   isMergedAnchor: boolean;
+  isInsideMergedRange: boolean;
   isHiddenByStructure: boolean;
+  hasPendingEdit: boolean;
 }
 
 export interface WorksheetTable {
@@ -33,4 +45,6 @@ export interface WorksheetTable {
   columnHeaders: string[];
   cellMatrix: TableCell[][];
   structureWarnings: string[];
+  isEditable: boolean;
+  editBlockReason?: string;
 }

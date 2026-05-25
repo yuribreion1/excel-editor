@@ -3,6 +3,9 @@ import * as vscode from 'vscode';
 import * as XLSX from 'xlsx';
 
 import type { ParsedWorkbook, WorksheetSummary } from '../types/workbook';
+import { assessWorkbookEditability, assessWorksheetEditability } from './workbookRiskScanner';
+
+type InitialWorksheetSummary = Pick<WorksheetSummary, 'id' | 'name' | 'visibilityState'>;
 
 function mapVisibility(hiddenFlag: number | undefined): WorksheetSummary['visibilityState'] {
   if (hiddenFlag === 1) {
@@ -16,9 +19,7 @@ function mapVisibility(hiddenFlag: number | undefined): WorksheetSummary['visibi
   return 'visible';
 }
 
-export async function loadWorkbook(uri: vscode.Uri): Promise<ParsedWorkbook> {
-  const fileBytes = await vscode.workspace.fs.readFile(uri);
-
+export function parseWorkbookBytes(uri: vscode.Uri, fileBytes: Uint8Array): ParsedWorkbook {
   if (fileBytes.length < 4 || fileBytes[0] !== 0x50 || fileBytes[1] !== 0x4b) {
     throw new Error('Invalid ZIP container for .xlsx workbook.');
   }
@@ -28,12 +29,14 @@ export async function loadWorkbook(uri: vscode.Uri): Promise<ParsedWorkbook> {
     cellDates: true,
     cellNF: true,
     cellStyles: true,
-    cellText: true
+    cellText: true,
+    bookFiles: true,
+    bookVBA: true
   });
 
   const workbookSheets = workbook.Workbook?.Sheets ?? [];
   const warnings: string[] = [];
-  const visibleSheets: WorksheetSummary[] = [];
+  const visibleSheets: InitialWorksheetSummary[] = [];
   let hiddenSheetCount = 0;
 
   for (const [index, sheetName] of workbook.SheetNames.entries()) {
@@ -72,12 +75,39 @@ export async function loadWorkbook(uri: vscode.Uri): Promise<ParsedWorkbook> {
     throw new Error('Workbook does not contain any readable worksheets.');
   }
 
+  const editability = assessWorkbookEditability(workbook);
   return {
     uri: uri.toString(),
     fileName: path.basename(uri.fsPath),
     workbook,
-    sheets: visibleSheets,
+    sheets: visibleSheets.map((sheet) => {
+      const sheetAssessment = assessWorksheetEditability(
+        {
+          uri: uri.toString(),
+          fileName: path.basename(uri.fsPath),
+          workbook,
+          sheets: [],
+          activeSheetId: visibleSheets[0].id,
+          warnings,
+          editability
+        },
+        sheet.id
+      );
+
+      return {
+        ...sheet,
+        isEditable: sheetAssessment.editable,
+        editBlockReason: sheetAssessment.readOnlyReason,
+        pendingEditCount: 0
+      };
+    }),
     activeSheetId: visibleSheets[0].id,
-    warnings
+    warnings,
+    editability
   };
+}
+
+export async function loadWorkbook(uri: vscode.Uri): Promise<ParsedWorkbook> {
+  const fileBytes = await vscode.workspace.fs.readFile(uri);
+  return parseWorkbookBytes(uri, fileBytes);
 }

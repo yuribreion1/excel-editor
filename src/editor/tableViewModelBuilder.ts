@@ -1,25 +1,7 @@
 import * as XLSX from 'xlsx';
 
 import type { ParsedWorkbook, TableCell, WorksheetTable } from '../types/workbook';
-
-function getRawValueType(cell: XLSX.CellObject | undefined): TableCell['rawValueType'] {
-  if (!cell || cell.v === undefined || cell.v === null || cell.v === '') {
-    return 'blank';
-  }
-
-  switch (cell.t) {
-    case 's':
-      return 'text';
-    case 'n':
-      return 'number';
-    case 'b':
-      return 'boolean';
-    case 'd':
-      return 'date';
-    default:
-      return 'unknown';
-  }
-}
+import { assessCellEditability, assessWorksheetEditability, getCellDisplayValue, getCellEditValue } from '../parsing/workbookRiskScanner';
 
 function getColumnLabel(index: number): string {
   let value = index + 1;
@@ -45,9 +27,14 @@ function findMergedAnchors(sheet: XLSX.WorkSheet): Set<string> {
   return anchors;
 }
 
+export interface TableBuildOptions {
+  pendingEditAddresses?: Iterable<string>;
+}
+
 export function buildWorksheetTable(
   parsedWorkbook: ParsedWorkbook,
-  sheetId: string
+  sheetId: string,
+  options: TableBuildOptions = {}
 ): WorksheetTable {
   const sheet = parsedWorkbook.workbook.Sheets[sheetId];
 
@@ -62,6 +49,8 @@ export function buildWorksheetTable(
   const hiddenColumns = (sheet['!cols'] ?? []).filter((column) => column?.hidden).length;
   const mergeCount = (sheet['!merges'] ?? []).length;
   const anchors = findMergedAnchors(sheet);
+  const worksheetAssessment = assessWorksheetEditability(parsedWorkbook, sheetId);
+  const pendingEditAddresses = new Set(options.pendingEditAddresses ?? []);
   const structureWarnings: string[] = [];
 
   if (mergeCount > 0) {
@@ -95,21 +84,21 @@ export function buildWorksheetTable(
         c: range ? range.s.c + columnIndex : columnIndex
       });
       const cell = sheet[address];
+      const editability = assessCellEditability(parsedWorkbook, sheetId, address);
 
       rowCells.push({
+        address,
         rowIndex,
         columnIndex,
-        displayValue:
-          cell?.w !== undefined
-            ? String(cell.w)
-            : cell?.v !== undefined && cell.v !== null
-              ? String(cell.v)
-              : '',
-        rawValueType: getRawValueType(cell),
+        displayValue: getCellDisplayValue(cell),
+        editValue: getCellEditValue(cell),
+        rawValueType: editability.rawValueType,
+        isEditable: editability.editable,
+        editBlockReason: editability.readOnlyReason,
         isMergedAnchor: anchors.has(`${rowIndex}:${columnIndex}`),
-        isHiddenByStructure:
-          Boolean(sheet['!rows']?.[rowIndex]?.hidden) ||
-          Boolean(sheet['!cols']?.[columnIndex]?.hidden)
+        isInsideMergedRange: editability.isInsideMergedRange,
+        isHiddenByStructure: editability.isHiddenByStructure,
+        hasPendingEdit: pendingEditAddresses.has(address)
       });
     }
 
@@ -124,6 +113,8 @@ export function buildWorksheetTable(
     rowHeaders,
     columnHeaders,
     cellMatrix,
-    structureWarnings
+    structureWarnings,
+    isEditable: worksheetAssessment.editable,
+    editBlockReason: worksheetAssessment.readOnlyReason
   };
 }

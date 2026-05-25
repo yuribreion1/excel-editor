@@ -1,7 +1,7 @@
 {
   "name": "excel-editor",
   "version": "0.0.1",
-  "description": "VS Code extension for viewing XLSX files in a read-only table",
+  "description": "VS Code extension for viewing and editing XLSX files in a table",
   "main": "./out/src/extension.js",
   "directories": {
     "test": "tests"
@@ -32,7 +32,7 @@
     "customEditors": [
       {
         "viewType": "excelEditor.xlsxViewer",
-        "displayName": "XLSX Viewer",
+        "displayName": "XLSX Editor",
         "selector": [
           {
             "filenamePattern": "*.xlsx"
@@ -53,7 +53,13 @@
     "@types/node": "^25.9.1",
     "@types/vscode": "^1.120.0",
     "@vscode/test-electron": "^2.5.2",
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
     "mocha": "^11.7.6",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4"
+  },
+  "overrides": {
+    "serialize-javascript": "7.0.3"
   }
 }

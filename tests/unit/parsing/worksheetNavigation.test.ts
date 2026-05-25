@@ -16,6 +16,7 @@ suite('worksheet navigation', () => {
       ['Overview', 'Team']
     );
     assert.equal(overview.rowCount, 3);
+    assert.equal(overview.isEditable, true);
     assert.ok(team.structureWarnings.some((warning) => warning.includes('hidden row')));
     assert.ok(team.structureWarnings.some((warning) => warning.includes('hidden column')));
   });

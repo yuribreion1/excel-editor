@@ -48,6 +48,8 @@ function getInlineScript(nonce: string): string {
   return `
 const vscode = acquireVsCodeApi();
 const app = document.getElementById('app');
+let currentState = undefined;
+let activeEditor = undefined;
 
 function create(tag, className, text) {
   const element = document.createElement(tag);
@@ -58,6 +60,82 @@ function create(tag, className, text) {
     element.textContent = text;
   }
   return element;
+}
+
+function showInlineMessage(kind, text) {
+  const existing = app.querySelector('.viewer-editor-message');
+  if (existing) {
+    existing.remove();
+  }
+
+  if (!text) {
+    return;
+  }
+
+  const message = create('div', 'viewer-editor-message viewer-editor-message--' + kind, text);
+  message.addEventListener('click', () => {
+    vscode.postMessage({ type: 'dismissEditorMessage' });
+  });
+  app.appendChild(message);
+}
+
+function commitCellEdit(cellElement, inputElement) {
+  const address = cellElement.dataset.address;
+  const sheetId = cellElement.dataset.sheetId;
+  if (!address || !sheetId) {
+    return;
+  }
+
+  vscode.postMessage({
+    type: 'commitCellEdit',
+    sheetId,
+    address,
+    value: inputElement.value
+  });
+}
+
+function startInlineEditing(cellElement) {
+  if (activeEditor) {
+    return;
+  }
+
+  if (cellElement.dataset.editable !== 'true') {
+    showInlineMessage('warning', cellElement.dataset.blockReason || 'This cell is read-only.');
+    return;
+  }
+
+  const initialValue = cellElement.dataset.editValue || '';
+  const input = document.createElement('input');
+  input.className = 'cell-editor-input';
+  input.type = 'text';
+  input.value = initialValue;
+  cellElement.replaceChildren(input);
+  cellElement.classList.add('is-editing');
+  activeEditor = { cellElement, input };
+  input.focus();
+  input.select();
+
+  let cancelled = false;
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      cancelled = true;
+      renderState(currentState);
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      commitCellEdit(cellElement, input);
+    }
+  });
+
+  input.addEventListener('blur', () => {
+    if (cancelled) {
+      return;
+    }
+
+    commitCellEdit(cellElement, input);
+  });
 }
 
 function renderTable(table) {
@@ -80,10 +158,42 @@ function renderTable(table) {
     rowElement.appendChild(create('th', 'row-header', table.rowHeaders[rowIndex] || String(rowIndex + 1)));
 
     row.forEach((cell) => {
-      const cellElement = create('td', cell.isHiddenByStructure ? 'cell is-muted' : 'cell', cell.displayValue);
+      const classNames = ['cell'];
+      if (cell.isHiddenByStructure) {
+        classNames.push('is-muted');
+      }
+      if (cell.hasPendingEdit) {
+        classNames.push('is-pending');
+      }
+      if (!cell.isEditable) {
+        classNames.push('is-blocked');
+      }
+
+      const cellElement = create('td', classNames.join(' '), cell.displayValue);
+      cellElement.tabIndex = 0;
+      cellElement.dataset.address = cell.address;
+      cellElement.dataset.sheetId = table.id;
+      cellElement.dataset.editable = String(cell.isEditable);
+      cellElement.dataset.editValue = cell.editValue;
+      if (cell.editBlockReason) {
+        cellElement.dataset.blockReason = cell.editBlockReason;
+        cellElement.title = cell.editBlockReason;
+      }
       if (cell.isMergedAnchor) {
         cellElement.dataset.mergedAnchor = 'true';
       }
+      cellElement.addEventListener('dblclick', () => startInlineEditing(cellElement));
+      cellElement.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          startInlineEditing(cellElement);
+        }
+      });
+      cellElement.addEventListener('click', () => {
+        if (!cell.isEditable && cell.editBlockReason) {
+          showInlineMessage('warning', cell.editBlockReason);
+        }
+      });
       rowElement.appendChild(cellElement);
     });
 
@@ -96,19 +206,55 @@ function renderTable(table) {
 }
 
 function renderState(state) {
+  currentState = state;
+  activeEditor = undefined;
   app.replaceChildren();
 
   const header = create('header', 'viewer-header');
   const titleBlock = create('div', 'viewer-title-block');
   titleBlock.appendChild(create('h1', 'viewer-title', state.title || 'Workbook'));
-  titleBlock.appendChild(create('p', 'viewer-subtitle', state.readOnly ? 'Read-only workbook preview' : 'Workbook preview'));
+  titleBlock.appendChild(create(
+    'p',
+    'viewer-subtitle',
+    state.readOnly
+      ? 'Read-only workbook preview'
+      : state.isDirty
+        ? 'Editable workbook • unsaved changes'
+        : 'Editable workbook'
+  ));
   header.appendChild(titleBlock);
-  header.appendChild(create('span', 'viewer-badge', state.readOnly ? 'Read only' : 'Editable'));
+  header.appendChild(create(
+    'span',
+    'viewer-badge',
+    state.readOnly ? 'Read only' : state.isDirty ? 'Dirty' : 'Clean'
+  ));
   app.appendChild(header);
 
   if (state.message) {
     app.appendChild(create('div', 'viewer-message', state.message));
   }
+
+  if (state.editorMessage) {
+    showInlineMessage(state.editorMessage.kind, state.editorMessage.text);
+  }
+
+  const statusRow = create('div', 'viewer-status-row');
+  statusRow.appendChild(create(
+    'span',
+    'viewer-status-pill',
+    state.readOnly
+      ? state.editability.readOnlyReason || 'Editing is disabled for this workbook.'
+      : state.isDirty
+        ? 'Unsaved edits are pending.'
+        : 'All workbook changes are saved.'
+  ));
+  const undoStatus = create(
+    'span',
+    'viewer-status-pill viewer-status-pill--secondary',
+    'Undo ' + (state.canUndo ? 'available' : 'unavailable') + ' • Redo ' + (state.canRedo ? 'available' : 'unavailable')
+  );
+  statusRow.appendChild(undoStatus);
+  app.appendChild(statusRow);
 
   if (state.warnings && state.warnings.length > 0) {
     const warningList = create('ul', 'viewer-warnings');
@@ -149,6 +295,10 @@ window.addEventListener('message', (event) => {
   const message = event.data;
   if (message && message.type === 'state') {
     renderState(message.state);
+  } else if (message && message.type === 'cellUpdate') {
+    renderState(message.state);
+  } else if (message && message.type === 'editorMessage') {
+    showInlineMessage(message.message.kind, message.message.text);
   }
 });
 
