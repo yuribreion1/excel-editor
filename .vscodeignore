@@ -1,12 +1,43 @@
+# VSCode Extension Ignore File
+
+## VSCode Local Settings
 .vscode/**
 .vscode-test/**
-out/**
+
+## GitHub Files
+.github/**
+
+## Specify Files
+.specify/**
+
+## Output Files
+out/tests/**
+out/src/test/**
+
+## Node Modules
 node_modules/**
+
+
+excel-editor/**
+
+## Scripts
+scripts/**
+
+## Tests
+tests/**
+specs/**
+
+## Source Files
 src/**
+
+## Git Files
 .gitignore
 .yarnrc
 webpack.config.js
+
 vsc-extension-quickstart.md
+
+## Configuration Files
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
