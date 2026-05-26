@@ -35,18 +35,6 @@ function getRawValueType(cell: XLSX.CellObject | undefined): CellRawValueType {
   }
 }
 
-function getWorkbookStyleBlocker(workbook: XLSX.WorkBook): string | undefined {
-  const styleTable = (workbook as XLSX.WorkBook & {
-    Styles?: { CellXf?: unknown[] };
-  }).Styles?.CellXf;
-
-  if (Array.isArray(styleTable) && styleTable.length > 1) {
-    return 'Style-rich workbooks remain read-only in this release to avoid lossy saves.';
-  }
-
-  return undefined;
-}
-
 function getSheetTypeBlockers(workbook: XLSX.WorkBook): string[] {
   const blockers: string[] = [];
 
@@ -99,11 +87,6 @@ export function assessWorkbookEditability(workbook: XLSX.WorkBook): WorkbookSave
   }
 
   blockedFeatures.push(...getSheetTypeBlockers(workbook));
-
-  const styleBlocker = getWorkbookStyleBlocker(workbook);
-  if (styleBlocker) {
-    blockedFeatures.push(styleBlocker);
-  }
 
   return {
     editable: blockedFeatures.length === 0,

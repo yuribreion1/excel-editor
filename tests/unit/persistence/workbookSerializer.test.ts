@@ -4,6 +4,8 @@ import { suite, test } from 'mocha';
 import { loadWorkbookFromBackup, reloadWorkbookFromBytes, serializeWorkbook, writeWorkbookBackup } from '../../../src/persistence/workbookSerializer';
 import { loadWorkbook } from '../../../src/parsing/xlsxWorkbookLoader';
 import { backupUri, fixtureUri } from '../../helpers/fixturePaths';
+import { createStyleRichWorkbook } from '../../helpers/styleRichFixture';
+import * as vscode from 'vscode';
 
 suite('workbookSerializer', () => {
   test('round-trips workbook bytes after an in-memory edit', async () => {
@@ -34,5 +36,18 @@ suite('workbookSerializer', () => {
     assert.equal(restored.activeSheetId, 'Team');
     assert.deepEqual(restored.pendingEdits, [{ sheetId: 'Overview', addresses: ['B2'] }]);
     backup.delete();
+  });
+
+  // T012: Styles.CellXf length is preserved on XLSX round-trip (cellStyles: true).
+  test('preserves Styles.CellXf entries on round-trip of a style-rich workbook', () => {
+    const rawWorkbook = createStyleRichWorkbook();
+    const uri = vscode.Uri.file('/fake/style-rich-roundtrip.xlsx');
+    const originalStyleCount = (rawWorkbook as typeof rawWorkbook & { Styles?: { CellXf?: unknown[] } }).Styles?.CellXf?.length ?? 0;
+
+    const bytes = serializeWorkbook(rawWorkbook);
+    const reloaded = reloadWorkbookFromBytes(uri, bytes);
+
+    const reloadedStyleCount = (reloaded.workbook as typeof reloaded.workbook & { Styles?: { CellXf?: unknown[] } }).Styles?.CellXf?.length ?? 0;
+    assert.ok(reloadedStyleCount >= originalStyleCount, `Style count should be preserved. Before: ${originalStyleCount}, After: ${reloadedStyleCount}`);
   });
 });

@@ -7,7 +7,7 @@ export async function getXlsxViewerHtml(
   extensionUri: vscode.Uri
 ): Promise<string> {
   const cssUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'out', 'src', 'webview', 'xlsxViewer.css')
+    vscode.Uri.joinPath(extensionUri, 'src', 'webview', 'xlsxViewer.css')
   );
   const nonce = createNonce();
   const script = getInlineScript(nonce);

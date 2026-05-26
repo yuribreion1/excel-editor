@@ -51,7 +51,7 @@ export class XlsxEditorProvider
   ): Promise<void> {
     webviewPanel.webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'out')]
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist'), vscode.Uri.joinPath(this.extensionUri, 'src')]
     };
     webviewPanel.title = document.fileName;
     webviewPanel.webview.html = await getXlsxViewerHtml(webviewPanel.webview, this.extensionUri);
