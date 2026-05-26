@@ -12,6 +12,8 @@
     "vscode:prepublish": "npm run package",
     "package": "webpack --mode production --devtool hidden-source-map"
   },
+  "publisher": "yuribreion1",
+  "author": "Yuri Breion",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yuribreion1/excel-editor.git"
