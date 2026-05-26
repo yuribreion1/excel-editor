@@ -3,6 +3,7 @@ import { suite, test } from 'mocha';
 import * as XLSX from 'xlsx';
 
 import { assessWorkbookEditability } from '../../../src/parsing/workbookRiskScanner';
+import { createStyleRichWorkbook, createVbaWorkbook } from '../../helpers/styleRichFixture';
 
 suite('workbookRiskScanner', () => {
   test('blocks macro-enabled workbooks from editable mode', () => {
@@ -24,5 +25,33 @@ suite('workbookRiskScanner', () => {
     const assessment = assessWorkbookEditability(workbook);
     assert.equal(assessment.editable, false);
     assert.match(assessment.readOnlyReason ?? '', /unsupported "chart" sheet type/i);
+  });
+
+  // T003: This test must FAIL before getWorkbookStyleBlocker is removed (red → green).
+  test('allows style-rich workbooks to be edited', () => {
+    const workbook = createStyleRichWorkbook();
+
+    const assessment = assessWorkbookEditability(workbook);
+    assert.equal(assessment.editable, true, 'Style-rich workbooks should be editable');
+    assert.equal(assessment.readOnlyReason, undefined);
+  });
+
+  // T004: Workbook with no extra styles remains editable (clean baseline).
+  test('allows workbooks with no extra styles to be edited', () => {
+    const workbook = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([['A', 'B'], [1, 2]]);
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+
+    const assessment = assessWorkbookEditability(workbook);
+    assert.equal(assessment.editable, true);
+  });
+
+  // T005: VBA workbooks must remain blocked after the style guard removal.
+  test('continues to block VBA/macro workbooks after style guard removal', () => {
+    const workbook = createVbaWorkbook();
+
+    const assessment = assessWorkbookEditability(workbook);
+    assert.equal(assessment.editable, false);
+    assert.match(assessment.readOnlyReason ?? '', /macro-enabled/i);
   });
 });
